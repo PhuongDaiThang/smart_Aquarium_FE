@@ -31,38 +31,99 @@ function applyState(el, stateEl, name) {
  */
 async function sendControl(endpoint, state) {
   if (DEMO_MODE) {
-    return; // Demo mode, không gửi request
+    console.warn("⚠️ DEMO MODE - Không gửi lệnh đến ESP32");
+    return;
   }
 
   try {
+    console.log(`📤 Gửi lệnh đến ESP32: ${endpoint}`, { on: state });
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ on: state }),
+      cache: "no-cache",
     });
 
     if (!response.ok) {
-      throw new Error("Network response was not ok");
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("Control response:", data);
+    console.log("✅ Phản hồi từ ESP32:", data);
+
+    // Verify trạng thái từ ESP32
+    if (data.pump && data.pump.state !== undefined) {
+      console.log("🔄 Trạng thái thật từ ESP32:", data.pump.state);
+      // Nếu khác với UI, đồng bộ lại
+      if (data.pump.state !== state) {
+        console.warn("⚠️ Trạng thái UI khác ESP32! Đồng bộ lại...");
+      }
+    }
+
     return data;
   } catch (error) {
-    console.error("Error sending control command:", error);
-    alert(`Lỗi kết nối ESP32: ${error.message}`);
+    console.error("❌ Lỗi gửi lệnh:", error);
+    alert(
+      `❌ Lỗi kết nối ESP32: ${error.message}\n\nKiểm tra:\n- ESP32 đã bật?\n- IP đúng chưa?\n- Cùng mạng WiFi?`
+    );
+    throw error;
   }
+}
+
+/**
+ * Enable/disable controls dựa vào kết nối ESP32
+ * @param {boolean} connected - True nếu đã kết nối ESP32
+ */
+export function setControlsEnabled(connected) {
+  // Chỉ enable switch bơm khi đã kết nối ESP32
+  if (swPump) {
+    swPump.disabled = !connected;
+  }
+
+  // Update trạng thái hiển thị
+  if (stPump) {
+    if (!connected) {
+      stPump.className = "state-pill";
+      stPump.textContent = "Chưa kết nối";
+    }
+  }
+
+  console.log(`🔌 Controls ${connected ? "ENABLED" : "DISABLED"}`);
 }
 
 /**
  * Khởi tạo điều khiển thiết bị
  */
 export function initControls() {
+  // BAN ĐẦU: Disable tất cả cho đến khi kết nối ESP32
+  setControlsEnabled(false);
+
   swPump.addEventListener("change", async () => {
+    // Kiểm tra có kết nối không
+    if (DEMO_MODE) {
+      console.warn("⚠️ DEMO MODE - Không thể điều khiển!");
+      swPump.checked = !swPump.checked; // Revert
+      return;
+    }
+
+    if (swPump.disabled) {
+      console.error("❌ Chưa kết nối ESP32!");
+      swPump.checked = !swPump.checked; // Revert
+      return;
+    }
+
     applyState(swPump, stPump, "Máy bơm");
-    await sendControl(API_ENDPOINTS.pump, swPump.checked);
+
+    try {
+      await sendControl(API_ENDPOINTS.pump, swPump.checked);
+    } catch (error) {
+      // Nếu lỗi, revert lại
+      swPump.checked = !swPump.checked;
+      applyState(swPump, stPump, "Máy bơm");
+    }
   });
 
   swLight.addEventListener("change", async () => {

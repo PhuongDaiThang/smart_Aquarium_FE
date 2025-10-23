@@ -275,6 +275,15 @@ h1 {
   display: none;
 }
 
+.switch input:disabled + .track {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.switch input:disabled + .track .thumb {
+  cursor: not-allowed;
+}
+
 .track {
   width: var(--w);
   height: var(--h);

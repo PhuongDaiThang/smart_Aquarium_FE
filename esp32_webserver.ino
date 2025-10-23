@@ -23,11 +23,16 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"; // Thay đổi
 
 // ========== Hardware Pins ==========
 #define DS_PIN             4     // DS18B20 temperature sensor
-#define FLOAT_PIN          13    // Float sensor (2-wire)
+#define FLOAT_PIN          27    // Float sensor (2-wire) - GPIO27 ↔ GND
 #define RELAY_PUMP_PIN     5     // Pump relay
-#define RELAY_LIGHT_PIN    14    // Light relay (mở rộng)
-#define RELAY_FEED_PIN     15    // Feeder relay (mở rộng)
+#define RELAY_LIGHT_PIN    14    // Light relay (OPTIONAL - comment if not used)
+#define RELAY_FEED_PIN     15    // Feeder relay (OPTIONAL - comment if not used)
 #define RELAY_ACTIVE_LOW   true  // Most relays: LOW = ON
+
+// ========== Hardware Configuration ==========
+// Bật/tắt thiết bị tùy theo phần cứng thực tế
+#define ENABLE_LIGHT       false  // Set true nếu có relay đèn
+#define ENABLE_FEEDER      false  // Set true nếu có relay cho ăn
 
 // ========== DS18B20 Setup ==========
 OneWire oneWire(DS_PIN);
@@ -63,23 +68,34 @@ void pumpSet(bool on) {
 }
 
 void lightSet(bool on) {
-  digitalWrite(RELAY_LIGHT_PIN, (RELAY_ACTIVE_LOW ? !on : on));
-  lightState = on;
-  Serial.printf("Light %s\n", on ? "ON" : "OFF");
+  #if ENABLE_LIGHT
+    digitalWrite(RELAY_LIGHT_PIN, (RELAY_ACTIVE_LOW ? !on : on));
+    lightState = on;
+    Serial.printf("Light %s\n", on ? "ON" : "OFF");
+  #else
+    Serial.println("Light relay not enabled in hardware config");
+  #endif
 }
 
 void feedSet(bool on) {
-  digitalWrite(RELAY_FEED_PIN, (RELAY_ACTIVE_LOW ? !on : on));
-  feedState = on;
-  Serial.printf("Feeder %s\n", on ? "ON" : "OFF");
-  
-  // Auto turn off feeder after 3 seconds
-  if (on) {
-    delay(3000);
-    feedSet(false);
-  }
+  #if ENABLE_FEEDER
+    digitalWrite(RELAY_FEED_PIN, (RELAY_ACTIVE_LOW ? !on : on));
+    feedState = on;
+    Serial.printf("Feeder %s\n", on ? "ON" : "OFF");
+    
+    // Auto turn off feeder after 3 seconds
+    if (on) {
+      delay(3000);
+      feedSet(false);
+    }
+  #else
+    Serial.println("Feeder relay not enabled in hardware config");
+  #endif
 }
 
+// Phao: dùng INPUT_PULLUP → đóng mạch (mực CAO) = LOW
+// Logic: Float nổi (nước CAO) → chạm → LOW → return true
+//        Float chìm (nước THẤP) → hở → HIGH → return false
 bool isHighLevelRaw() {
   return digitalRead(FLOAT_PIN) == LOW;
 }
@@ -291,16 +307,25 @@ void handleFileRequest() {
 void setup() {
   Serial.begin(115200);
   Serial.println("\n=== ESP32 Smart Aquarium Web Server ===");
+  Serial.println("Hardware: DS18B20(GPIO4) + Float(GPIO27) + Pump(GPIO5)");
+  Serial.printf("Light relay: %s | Feeder relay: %s\n", 
+                ENABLE_LIGHT ? "ENABLED" : "DISABLED",
+                ENABLE_FEEDER ? "ENABLED" : "DISABLED");
   
   // Setup pins
   pinMode(RELAY_PUMP_PIN, OUTPUT);
-  pinMode(RELAY_LIGHT_PIN, OUTPUT);
-  pinMode(RELAY_FEED_PIN, OUTPUT);
   pinMode(FLOAT_PIN, INPUT_PULLUP);
+  pumpSet(false); // Tắt bơm khi khởi động (an toàn)
   
-  pumpSet(false);
-  lightSet(false);
-  feedSet(false);
+  #if ENABLE_LIGHT
+    pinMode(RELAY_LIGHT_PIN, OUTPUT);
+    lightSet(false);
+  #endif
+  
+  #if ENABLE_FEEDER
+    pinMode(RELAY_FEED_PIN, OUTPUT);
+    feedSet(false);
+  #endif
   
   // Setup DS18B20
   sensors.begin();

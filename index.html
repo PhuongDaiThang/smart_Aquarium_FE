@@ -76,12 +76,12 @@
             <span class="hint">(°C)</span>
           </h2>
           <div class="temp">
-            <div class="gauge" id="gauge" style="--value: 27.3">
+            <div class="gauge" id="gauge" style="--value: 0">
               <div class="needle"></div>
               <div class="pivot"></div>
             </div>
             <div>
-              <div class="temp-num" id="tempNum">27.3<small>°C</small></div>
+              <div class="temp-num" id="tempNum">--<small>°C</small></div>
               <div class="hint">Ngưỡng khuyến nghị: 24–28°C</div>
               <div
                 style="
@@ -95,7 +95,7 @@
                 <button class="btn acc" id="btn-refresh">
                   Cập nhật nhiệt độ
                 </button>
-                <span class="state-pill" id="tempStatus">Ổn định</span>
+                <span class="state-pill" id="tempStatus">Đang kết nối...</span>
               </div>
               <div
                 style="
@@ -174,7 +174,11 @@
               <div class="state-pill off" id="state-pump">Tắt</div>
             </div>
 
-            <div class="ctl">
+            <div
+              class="ctl"
+              style="opacity: 0.5"
+              title="Chưa có relay đèn - optional"
+            >
               <h3>
                 <svg
                   width="16"
@@ -190,15 +194,20 @@
                   />
                 </svg>
                 Đèn chiếu sáng
+                <span class="hint" style="font-size: 10px">(Tùy chọn)</span>
               </h3>
               <label class="switch">
-                <input type="checkbox" id="sw-light" />
+                <input type="checkbox" id="sw-light" disabled />
                 <div class="track"><div class="thumb"></div></div>
               </label>
-              <div class="state-pill off" id="state-light">Tắt</div>
+              <div class="state-pill off" id="state-light">Không có</div>
             </div>
 
-            <div class="ctl">
+            <div
+              class="ctl"
+              style="opacity: 0.5"
+              title="Chưa có relay cho ăn - optional"
+            >
               <h3>
                 <svg
                   width="16"
@@ -215,12 +224,13 @@
                   />
                 </svg>
                 Cho ăn
+                <span class="hint" style="font-size: 10px">(Tùy chọn)</span>
               </h3>
               <label class="switch">
-                <input type="checkbox" id="sw-feed" />
+                <input type="checkbox" id="sw-feed" disabled />
                 <div class="track"><div class="thumb"></div></div>
               </label>
-              <div class="state-pill off" id="state-feed">Tắt</div>
+              <div class="state-pill off" id="state-feed">Không có</div>
             </div>
           </div>
         </div>
