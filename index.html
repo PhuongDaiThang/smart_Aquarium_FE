@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ESP32 Dashboard • Nhiệt độ • Bơm • Đèn • Cho ăn • Lịch sử</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <div class="logo" aria-hidden="true">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3 12a9 9 0 1 0 18 0"
+                stroke="white"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M12 3v9l6 3"
+                stroke="white"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1>ESP32 • Smart Tank Dashboard</h1>
+            <div class="sub">
+              Hiển thị nhiệt độ • Bật/tắt bơm • Bật/tắt đèn • Cho ăn • Lưu lịch
+              sử
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <button
+            class="theme-toggle"
+            id="theme-toggle"
+            aria-label="Chuyển đổi giao diện sáng/tối"
+            title="Chuyển đổi giao diện"
+          >
+            <span id="theme-icon">
+              <!-- Icon sẽ được cập nhật bởi theme.js -->
+            </span>
+          </button>
+          <div class="sub" id="clock">--:--:--</div>
+        </div>
+      </header>
+
+      <section class="grid">
+        <!-- Temperature Card -->
+        <div class="card span-6" id="card-temp">
+          <h2>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M10 14.5V5a2 2 0 1 1 4 0v9.5a5 5 0 1 1-4 0z"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+            </svg>
+            Nhiệt độ hiện tại
+            <span class="hint">(°C)</span>
+          </h2>
+          <div class="temp">
+            <div class="gauge" id="gauge" style="--value: 27.3">
+              <div class="needle"></div>
+              <div class="pivot"></div>
+            </div>
+            <div>
+              <div class="temp-num" id="tempNum">27.3<small>°C</small></div>
+              <div class="hint">Ngưỡng khuyến nghị: 24–28°C</div>
+              <div
+                style="
+                  margin-top: 14px;
+                  display: flex;
+                  gap: 10px;
+                  align-items: center;
+                  flex-wrap: wrap;
+                "
+              >
+                <button class="btn acc" id="btn-refresh">
+                  Cập nhật nhiệt độ
+                </button>
+                <span class="state-pill" id="tempStatus">Ổn định</span>
+              </div>
+              <div
+                style="
+                  margin-top: 12px;
+                  padding-top: 12px;
+                  border-top: 1px dashed var(--border-color);
+                "
+              >
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 2v20M12 2l-4 4m4-4l4 4"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span class="hint">Mực nước:</span>
+                  <span class="state-pill" id="floatStatus">--</span>
+                </div>
+                <div class="hint" style="margin-top: 4px; font-size: 11px">
+                  Phao tự động điều khiển máy bơm
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="card span-6">
+          <h2>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 12h16M12 4v16"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+            </svg>
+            Điều khiển thiết bị
+          </h2>
+          <div class="controls">
+            <div class="ctl">
+              <h3>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 12c0-4 3-7 7-7s7 3 7 7-3 7-7 7-7-3-7-7z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+                Máy bơm
+              </h3>
+              <label class="switch">
+                <input type="checkbox" id="sw-pump" />
+                <div class="track"><div class="thumb"></div></div>
+              </label>
+              <div class="state-pill off" id="state-pump">Tắt</div>
+            </div>
+
+            <div class="ctl">
+              <h3>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 3v7m0 0a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+                Đèn chiếu sáng
+              </h3>
+              <label class="switch">
+                <input type="checkbox" id="sw-light" />
+                <div class="track"><div class="thumb"></div></div>
+              </label>
+              <div class="state-pill off" id="state-light">Tắt</div>
+            </div>
+
+            <div class="ctl">
+              <h3>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4 15s2 2 8 2 8-2 8-2M4 9s2 2 8 2 8-2 8-2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                Cho ăn
+              </h3>
+              <label class="switch">
+                <input type="checkbox" id="sw-feed" />
+                <div class="track"><div class="thumb"></div></div>
+              </label>
+              <div class="state-pill off" id="state-feed">Tắt</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="card span-12">
+          <div class="toolbar">
+            <h2>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 4h14M5 20h14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+              Lịch sử hoạt động
+            </h2>
+            <div style="display: flex; gap: 10px">
+              <button class="btn" id="btn-export">Xuất CSV</button>
+              <button class="btn warn" id="btn-clear">Xoá lịch sử</button>
+            </div>
+          </div>
+          <div style="overflow: auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Hành động</th>
+                  <th>Chi tiết</th>
+                </tr>
+              </thead>
+              <tbody id="history"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
